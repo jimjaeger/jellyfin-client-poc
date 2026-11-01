@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jellyfin-client-poc"
+version = "0.0.1"
+description = "Proof of concept: Jellyfin client with generated models, sync and async stacks and pluggable HTTP adapters"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+aiohttp = ["aiohttp>=3.10"]
+httpx = ["httpx>=0.27", "websockets>=13"]
+http2 = ["httpx[http2]>=0.27", "websockets>=13"]
+
+[dependency-groups]
+dev = [
+    "aiohttp>=3.10",
+    "httpx[http2]>=0.27",
+    "websockets>=13",
+    "unasync>=0.6",
+    "pytest>=8",
+    "pytest-aiohttp>=1.0",
+    "mypy>=1.13",
+    "ruff>=0.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jellyfin_client"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["src/jellyfin_client/generated", "src/jellyfin_client/_sync"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
+# Timeouts are passed explicitly and loops poll instead of using asyncio
+# primitives, because the sync stack is generated from the async code.
+ignore = ["ASYNC109", "ASYNC110"]
+
+[tool.mypy]
+strict = true
+files = ["src"]

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Environments and tool caches
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Local notes, not part of the project
+drafts/
+
+# Library: dependencies come from pyproject.toml, no lockfile
+uv.lock
