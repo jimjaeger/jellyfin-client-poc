@@ -2,6 +2,12 @@
 """Client stack; tools/generate.py derives ``_sync`` from ``_async``."""
 
 from .client import JellyfinClient, connect_to_address
+from .remote import RemoteControl
 from .websocket import JellyfinWebSocket
 
-__all__ = ["JellyfinClient", "JellyfinWebSocket", "connect_to_address"]
+__all__ = [
+    "JellyfinClient",
+    "JellyfinWebSocket",
+    "RemoteControl",
+    "connect_to_address",
+]

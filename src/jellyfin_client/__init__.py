@@ -6,9 +6,14 @@ Pick a stack and plug in a transport adapter:
     JellyfinClient(HttpxTransport(httpx.Client()), url, info)   # threads
 """
 
-from ._async import AsyncJellyfinClient, AsyncJellyfinWebSocket, async_connect_to_address
+from ._async import (
+    AsyncJellyfinClient,
+    AsyncJellyfinWebSocket,
+    AsyncRemoteControl,
+    async_connect_to_address,
+)
 from ._base import ClientInfo
-from ._sync import JellyfinClient, JellyfinWebSocket, connect_to_address
+from ._sync import JellyfinClient, JellyfinWebSocket, RemoteControl, connect_to_address
 from .exceptions import (
     JellyfinApiError,
     JellyfinAuthError,
@@ -24,6 +29,7 @@ __all__ = [
     "SPEC_VERSION",
     "AsyncJellyfinClient",
     "AsyncJellyfinWebSocket",
+    "AsyncRemoteControl",
     "AsyncTransport",
     "ClientInfo",
     "JellyfinApiError",
@@ -34,6 +40,7 @@ __all__ = [
     "JellyfinForbiddenError",
     "JellyfinNotFoundError",
     "JellyfinWebSocket",
+    "RemoteControl",
     "Request",
     "Response",
     "SyncTransport",

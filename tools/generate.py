@@ -32,6 +32,7 @@ SYNC_REPLACEMENTS = {
     "AsyncGeneratedApi": "GeneratedApi",
     "AsyncJellyfinClient": "JellyfinClient",
     "AsyncJellyfinWebSocket": "JellyfinWebSocket",
+    "AsyncRemoteControl": "RemoteControl",
     "AsyncStreamResponse": "SyncStreamResponse",
     "AsyncTransport": "SyncTransport",
     "AsyncWebSocket": "SyncWebSocket",

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from functools import cached_property
+from typing import Any
 
 from .._base import (
     DEFAULT_TIMEOUT,
@@ -17,6 +18,7 @@ from .._base import (
 from ..generated import models
 from ..generated._async.endpoints import AsyncGeneratedApi
 from ..transport import AsyncStreamResponse, AsyncTransport, safe_url
+from .remote import AsyncRemoteControl
 
 
 async def async_connect_to_address(
@@ -79,50 +81,13 @@ class AsyncJellyfinClient(AsyncGeneratedApi, ClientBase):
         self._check_status(response.status, "GET", safe_url(url))
         return response.body
 
+    @cached_property
+    def remote(self) -> AsyncRemoteControl:
+        """Remote control of client sessions: pause, seek, volume, …"""
+        return AsyncRemoteControl(self)
+
     async def authenticate(self, username: str, password: str) -> models.AuthenticationResult:
         """Log in with username and password and keep the access token."""
         result = await self.authenticate_user_by_name(body={"Username": username, "Pw": password})
         self._store_login(result)
         return result
-
-    async def remote_playstate(
-        self,
-        session_id: str,
-        command: models.PlaystateCommand,
-        *,
-        seek_position_ticks: int | None = None,
-    ) -> None:
-        """Send a playstate command such as Pause, Unpause, Stop or Seek."""
-        await self.send_playstate_command(
-            session_id, command, seek_position_ticks=seek_position_ticks
-        )
-
-    async def remote_play_media(
-        self,
-        session_id: str,
-        item_ids: list[str],
-        command: models.PlayCommand = "PlayNow",
-    ) -> None:
-        """Start playback of items on a session."""
-        await self.play(session_id, play_command=command, item_ids=item_ids)
-
-    async def remote_command(
-        self,
-        session_id: str,
-        command: models.GeneralCommandType | str,
-        arguments: dict[str, str] | None = None,
-    ) -> None:
-        """Send a general command such as Mute or SetVolume.
-
-        Any command name is passed through, so clients can be sent commands
-        newer than this library's spec.
-        """
-        body: models.GeneralCommand = {"Name": cast("models.GeneralCommandType", command)}
-        if arguments:
-            body["Arguments"] = dict(arguments)
-        await self.send_full_general_command(session_id, body=body)
-
-    async def remote_set_volume(self, session_id: str, volume: int) -> None:
-        """Set the volume of a session, 0 to 100."""
-        # The server models command arguments as strings.
-        await self.remote_command(session_id, "SetVolume", {"Volume": str(volume)})

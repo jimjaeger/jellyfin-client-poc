@@ -5,7 +5,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, cast
+from functools import cached_property
+from typing import Any
 
 from .._base import (
     DEFAULT_TIMEOUT,
@@ -18,6 +19,7 @@ from .._base import (
 from ..generated import models
 from ..generated._sync.endpoints import GeneratedApi
 from ..transport import SyncStreamResponse, SyncTransport, safe_url
+from .remote import RemoteControl
 
 
 def connect_to_address(
@@ -80,48 +82,13 @@ class JellyfinClient(GeneratedApi, ClientBase):
         self._check_status(response.status, "GET", safe_url(url))
         return response.body
 
+    @cached_property
+    def remote(self) -> RemoteControl:
+        """Remote control of client sessions: pause, seek, volume, …"""
+        return RemoteControl(self)
+
     def authenticate(self, username: str, password: str) -> models.AuthenticationResult:
         """Log in with username and password and keep the access token."""
         result = self.authenticate_user_by_name(body={"Username": username, "Pw": password})
         self._store_login(result)
         return result
-
-    def remote_playstate(
-        self,
-        session_id: str,
-        command: models.PlaystateCommand,
-        *,
-        seek_position_ticks: int | None = None,
-    ) -> None:
-        """Send a playstate command such as Pause, Unpause, Stop or Seek."""
-        self.send_playstate_command(session_id, command, seek_position_ticks=seek_position_ticks)
-
-    def remote_play_media(
-        self,
-        session_id: str,
-        item_ids: list[str],
-        command: models.PlayCommand = "PlayNow",
-    ) -> None:
-        """Start playback of items on a session."""
-        self.play(session_id, play_command=command, item_ids=item_ids)
-
-    def remote_command(
-        self,
-        session_id: str,
-        command: models.GeneralCommandType | str,
-        arguments: dict[str, str] | None = None,
-    ) -> None:
-        """Send a general command such as Mute or SetVolume.
-
-        Any command name is passed through, so clients can be sent commands
-        newer than this library's spec.
-        """
-        body: models.GeneralCommand = {"Name": cast("models.GeneralCommandType", command)}
-        if arguments:
-            body["Arguments"] = dict(arguments)
-        self.send_full_general_command(session_id, body=body)
-
-    def remote_set_volume(self, session_id: str, volume: int) -> None:
-        """Set the volume of a session, 0 to 100."""
-        # The server models command arguments as strings.
-        self.remote_command(session_id, "SetVolume", {"Volume": str(volume)})

@@ -17,6 +17,14 @@ client = AsyncJellyfinClient(transport, url, ClientInfo("App", "1.0", "Device", 
 await client.authenticate("user", "password")
 sessions = await client.get_sessions()
 
+await client.remote.pause(session_id)
+
+# uploads and downloads
+await client.set_item_image(item_id, "Primary", body=png_bytes, content_type="image/png")
+async with client.stream(client.get_download_url(item_id, include_token=False)) as response:
+    async for chunk in response.iter_bytes(65536):
+        ...
+
 # threads, e.g. jellyfin-mpv-shim (HTTP/2 with the http2 extra)
 from jellyfin_client import JellyfinClient, connect_to_address
 from jellyfin_client.adapters.httpx import HttpxTransport
@@ -24,6 +32,12 @@ from jellyfin_client.adapters.httpx import HttpxTransport
 transport = HttpxTransport(httpx.Client(http2=True))
 url, info = connect_to_address(transport, "https://jellyfin.example")
 client = JellyfinClient(transport, url, ClientInfo("App", "1.0", "Device", "device-id"))
+
+# download to a file, sync stack
+with client.stream(client.get_download_url(item_id, include_token=False)) as response:
+    with open("movie.mkv", "wb") as file:
+        for chunk in response.iter_bytes(65536):
+            file.write(chunk)
 ```
 
 ## Layout
@@ -35,12 +49,12 @@ All paths are below `src/jellyfin_client/`, except `spec/` and `tools/`.
 | `spec/jellyfin-openapi.json` | — | Stable spec 12.4.0 from repo.jellyfin.org |
 | `tools/generate.py` | by hand | Generates models and async endpoints, then derives the sync stack with [unasync](https://github.com/python-trio/unasync) |
 | `generated/models.py` | generated | 357 TypedDicts and `Literal` enum aliases, including the WebSocket messages |
-| `generated/_async/endpoints.py` | generated | 293 async endpoint methods covering every tag |
+| `generated/_async/endpoints.py` | generated | 299 async endpoint methods covering every tag, including uploads |
 | `generated/_sync/endpoints.py` | unasync | Same methods, sync |
 | `generated/urls.py` | generated | 35 URL builders for endpoints returning images, streams or files (shared by both stacks) |
 | `transport.py` | by hand | `Request`/`Response` and the `AsyncTransport`/`SyncTransport` protocols that adapters implement |
 | `_base.py` | by hand | Shared logic without I/O: auth header, URL builders, response decoding |
-| `_async/client.py`, `_async/websocket.py` | by hand | Client, address probing, WebSocket (KeepAlive, reconnect with backoff and jitter, resync callback) |
+| `_async/client.py`, `_async/remote.py`, `_async/websocket.py` | by hand | Client, address probing, WebSocket (KeepAlive, reconnect with backoff and jitter, resync callback) |
 | `_sync/` | unasync | Sync client and WebSocket generated from `_async/` |
 | `adapters/aiohttp.py` | by hand | Async adapter on a caller-owned `aiohttp.ClientSession` |
 | `adapters/httpx.py` | by hand | Sync and async adapters on httpx, WebSocket via `websockets` |
@@ -57,6 +71,16 @@ Regenerate with `python tools/generate.py`.
   builders (`get_trickplay_tile_image_url(...)`, `get_item_image_url(...)`) with every
   query parameter from the spec. HEAD variants and uploads with image or text bodies are
   skipped, and the generator lists them.
+- **Uploads are generated too.** Image uploads are sent base64-encoded: the spec declares
+  them binary, but the server decodes them as base64 (`GetFromBase64Stream` in
+  `ImageController`). Lyrics and client logs are sent as raw text.
+- **Streaming downloads.** `client.stream(url)` yields the body in chunks and closes the
+  connection when the block exits; `client.fetch_bytes(url)` is for small files. Both send
+  the token in the header and refuse URLs of other hosts. Writing to a file is left to
+  the caller, so the async stack never blocks the event loop on disk I/O.
+- **Flat generated methods, namespaced helpers.** The generated endpoint methods sit
+  directly on the client; hand-written helpers get a namespace, starting with
+  `client.remote` (pause, seek, volume, mute, …).
 - **401 and 403 are different errors.** `JellyfinAuthError` means the login is no longer
   valid; `JellyfinForbiddenError` means the user lacks permission (e.g. an admin-only
   request). Callers like Home Assistant must not start a reauth on the latter.

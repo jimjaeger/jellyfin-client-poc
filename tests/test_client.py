@@ -103,10 +103,10 @@ async def test_not_found(stack: Stack, client: Any) -> None:
 
 
 async def test_remote_commands(fake_server: FakeServer, stack: Stack, client: Any) -> None:
-    await stack.call(client.remote_playstate, "session-1", "Seek", seek_position_ticks=50)
-    await stack.call(client.remote_play_media, "session-1", ["a", "b"])
-    await stack.call(client.remote_set_volume, "session-1", 40)
-    await stack.call(client.remote_command, "session-1", "Mute")
+    await stack.call(client.remote.seek, "session-1", 50)
+    await stack.call(client.remote.play_media, "session-1", ["a", "b"])
+    await stack.call(client.remote.set_volume, "session-1", 40)
+    await stack.call(client.remote.mute, "session-1")
 
     seek, play, volume, mute = fake_server.requests
     assert (seek["path"], seek["query"]) == (
@@ -124,7 +124,7 @@ async def test_remote_commands(fake_server: FakeServer, stack: Stack, client: An
 async def test_path_parameters_are_quoted(
     fake_server: FakeServer, stack: Stack, client: Any
 ) -> None:
-    await stack.call(client.remote_playstate, "a/b", "Pause")
+    await stack.call(client.remote.pause, "a/b")
 
     assert fake_server.requests[-1]["raw_path"] == "/Sessions/a%2Fb/Playing/Pause"
 
@@ -264,3 +264,26 @@ async def test_connection_error_hides_token(stack: Stack, client: Any) -> None:
     with pytest.raises(JellyfinConnectionError) as err:
         await stack.call(client.fetch_bytes, url)
     assert TOKEN not in str(err.value)
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        pytest.param("unpause", "/Sessions/s/Playing/Unpause", None, id="unpause"),
+        pytest.param("stop", "/Sessions/s/Playing/Stop", None, id="stop"),
+        pytest.param("play_pause", "/Sessions/s/Playing/PlayPause", None, id="play_pause"),
+        pytest.param("unmute", "/Sessions/s/Command", {"Name": "Unmute"}, id="unmute"),
+    ],
+)
+async def test_remote_namespace(
+    fake_server: FakeServer,
+    stack: Stack,
+    client: Any,
+    method: str,
+    path: str,
+    body: dict[str, str] | None,
+) -> None:
+    await stack.call(getattr(client.remote, method), "s")
+
+    request = fake_server.requests[-1]
+    assert (request["path"], request["json"]) == (path, body)
