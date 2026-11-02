@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
@@ -175,3 +176,29 @@ def test_generated_url_builder_without_token(client: Any) -> None:
     url = client.get_item_image_url("item-1", "Backdrop", include_token=False)
 
     assert url.endswith("/Items/item-1/Images/Backdrop")
+
+
+async def test_image_upload_is_base64(fake_server: FakeServer, stack: Stack, client: Any) -> None:
+    image = b"\x89PNG\r\n\x1a\nfake image"
+
+    await stack.call(
+        client.set_item_image, "item-1", "Primary", body=image, content_type="image/png"
+    )
+
+    request = fake_server.requests[-1]
+    assert request["path"] == "/Items/item-1/Images/Primary"
+    assert request["content_type"] == "image/png"
+    # The server decodes image uploads as base64, although the spec says binary.
+    assert base64.b64decode(request["raw"]) == image
+
+
+async def test_text_upload_is_raw(fake_server: FakeServer, stack: Stack, client: Any) -> None:
+    result = await stack.call(
+        client.upload_lyrics, "item-1", file_name="song.lrc", body="[00:01.00] Hello"
+    )
+
+    request = fake_server.requests[-1]
+    assert request["query"] == {"fileName": "song.lrc"}
+    assert request["content_type"] == "text/plain"
+    assert request["raw"] == b"[00:01.00] Hello"
+    assert result == {"Lyrics": [{"Text": "[00:01.00] Hello"}]}

@@ -21,13 +21,18 @@ from .exceptions import (
 
 @dataclass(frozen=True, slots=True)
 class Request:
-    """An HTTP request to send; adapters follow redirects."""
+    """An HTTP request to send; adapters follow redirects.
+
+    The body is either ``json`` or raw ``content`` (with its Content-Type in
+    ``headers``), never both.
+    """
 
     method: str
     url: str
     params: dict[str, str] = field(default_factory=dict)
     headers: dict[str, str] = field(default_factory=dict)
     json: Any = None
+    content: bytes | None = None
 
 
 @dataclass(frozen=True, slots=True)

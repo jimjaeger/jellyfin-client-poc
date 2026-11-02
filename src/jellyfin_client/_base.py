@@ -120,14 +120,24 @@ class ClientBase(GeneratedUrls):
         return f"{self.url.replace('http', 'ws', 1)}/socket"
 
     def _prepare(
-        self, method: str, path: str, params: dict[str, Any] | None, json_body: Any
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None,
+        json_body: Any,
+        content: bytes | None = None,
+        content_type: str | None = None,
     ) -> Request:
+        headers = {"Authorization": self.authorization, "Accept": "application/json"}
+        if content_type:
+            headers["Content-Type"] = content_type
         return Request(
             method,
             f"{self.url}{path}",
             params=encode_params(params) if params else {},
-            headers={"Authorization": self.authorization, "Accept": "application/json"},
+            headers=headers,
             json=json_body,
+            content=content,
         )
 
     @staticmethod

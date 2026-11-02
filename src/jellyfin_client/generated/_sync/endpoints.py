@@ -3,6 +3,7 @@
 
 """Jellyfin API endpoint methods."""
 
+import base64
 from typing import Any, cast
 from urllib.parse import quote
 
@@ -11,6 +12,10 @@ from .. import models
 
 def _quote(value: object) -> str:
     return quote(str(value), safe="")
+
+
+def _to_bytes(body: str | bytes) -> bytes:
+    return body.encode() if isinstance(body, str) else body
 
 
 class GeneratedApi:
@@ -23,6 +28,8 @@ class GeneratedApi:
         *,
         params: dict[str, Any] | None = None,
         json: Any = None,
+        content: bytes | None = None,
+        content_type: str | None = None,
     ) -> Any:
         raise NotImplementedError
 
@@ -253,6 +260,20 @@ class GeneratedApi:
                     "fields": fields,
                     "channelIds": channel_ids,
                 },
+            ),
+        )
+
+    def log_file(
+        self, *, body: str | bytes, content_type: str = "text/plain"
+    ) -> models.ClientLogDocumentResponseDto:
+        """Upload a document.
+
+        POST /ClientLog/Document
+        """
+        return cast(
+            "models.ClientLogDocumentResponseDto",
+            self._request(
+                "POST", "/ClientLog/Document", content=_to_bytes(body), content_type=content_type
             ),
         )
 
@@ -610,6 +631,20 @@ class GeneratedApi:
             self._request("GET", f"/Genres/{_quote(genre_name)}", params={"userId": user_id}),
         )
 
+    def upload_custom_splashscreen(self, *, body: bytes, content_type: str = "image/jpeg") -> None:
+        """Uploads a custom splashscreen.
+        The body is expected to the image contents base64 encoded.
+
+                POST /Branding/Splashscreen
+                Pass the raw bytes; they are sent base64-encoded as the server expects.
+        """
+        self._request(
+            "POST",
+            "/Branding/Splashscreen",
+            content=base64.b64encode(body),
+            content_type=content_type,
+        )
+
     def delete_custom_splashscreen(self) -> None:
         """Delete a custom splashscreen.
 
@@ -639,6 +674,26 @@ class GeneratedApi:
             params={"imageIndex": image_index},
         )
 
+    def set_item_image(
+        self,
+        item_id: str,
+        image_type: models.ImageType,
+        *,
+        body: bytes,
+        content_type: str = "image/jpeg",
+    ) -> None:
+        """Set item image.
+
+        POST /Items/{itemId}/Images/{imageType}
+        Pass the raw bytes; they are sent base64-encoded as the server expects.
+        """
+        self._request(
+            "POST",
+            f"/Items/{_quote(item_id)}/Images/{_quote(image_type)}",
+            content=base64.b64encode(body),
+            content_type=content_type,
+        )
+
     def delete_item_image_by_index(
         self, item_id: str, image_type: models.ImageType, image_index: int
     ) -> None:
@@ -648,6 +703,27 @@ class GeneratedApi:
         """
         self._request(
             "DELETE", f"/Items/{_quote(item_id)}/Images/{_quote(image_type)}/{_quote(image_index)}"
+        )
+
+    def set_item_image_by_index(
+        self,
+        item_id: str,
+        image_type: models.ImageType,
+        image_index: int,
+        *,
+        body: bytes,
+        content_type: str = "image/jpeg",
+    ) -> None:
+        """Set item image.
+
+        POST /Items/{itemId}/Images/{imageType}/{imageIndex}
+        Pass the raw bytes; they are sent base64-encoded as the server expects.
+        """
+        self._request(
+            "POST",
+            f"/Items/{_quote(item_id)}/Images/{_quote(image_type)}/{_quote(image_index)}",
+            content=base64.b64encode(body),
+            content_type=content_type,
         )
 
     def update_item_image_index(
@@ -661,6 +737,22 @@ class GeneratedApi:
             "POST",
             f"/Items/{_quote(item_id)}/Images/{_quote(image_type)}/{_quote(image_index)}/Index",
             params={"newIndex": new_index},
+        )
+
+    def post_user_image(
+        self, *, body: bytes, user_id: str | None = None, content_type: str = "image/jpeg"
+    ) -> None:
+        """Sets the user image.
+
+        POST /UserImage
+        Pass the raw bytes; they are sent base64-encoded as the server expects.
+        """
+        self._request(
+            "POST",
+            "/UserImage",
+            params={"userId": user_id},
+            content=base64.b64encode(body),
+            content_type=content_type,
         )
 
     def delete_user_image(self, *, user_id: str | None = None) -> None:
@@ -2432,6 +2524,24 @@ class GeneratedApi:
         GET /Audio/{itemId}/Lyrics
         """
         return cast("models.LyricDto", self._request("GET", f"/Audio/{_quote(item_id)}/Lyrics"))
+
+    def upload_lyrics(
+        self, item_id: str, *, body: str | bytes, file_name: str, content_type: str = "text/plain"
+    ) -> models.LyricDto:
+        """Upload an external lyric file.
+
+        POST /Audio/{itemId}/Lyrics
+        """
+        return cast(
+            "models.LyricDto",
+            self._request(
+                "POST",
+                f"/Audio/{_quote(item_id)}/Lyrics",
+                params={"fileName": file_name},
+                content=_to_bytes(body),
+                content_type=content_type,
+            ),
+        )
 
     def delete_lyrics(self, item_id: str) -> None:
         """Deletes an external lyric file.

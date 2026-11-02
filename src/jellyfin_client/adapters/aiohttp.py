@@ -30,6 +30,7 @@ class AiohttpTransport:
                 params=request.params or None,
                 headers=request.headers,
                 json=request.json,
+                data=request.content,
                 timeout=aiohttp.ClientTimeout(total=timeout),
             ) as resp:
                 return Response(resp.status, await resp.read(), str(resp.url))

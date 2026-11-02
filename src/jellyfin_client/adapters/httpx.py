@@ -86,6 +86,7 @@ class HttpxTransport:
                 params=request.params,
                 headers=request.headers,
                 json=request.json,
+                content=request.content,
                 timeout=timeout,
                 follow_redirects=True,
             )
@@ -160,6 +161,7 @@ class HttpxAsyncTransport:
                 params=request.params,
                 headers=request.headers,
                 json=request.json,
+                content=request.content,
                 timeout=timeout,
                 follow_redirects=True,
             )

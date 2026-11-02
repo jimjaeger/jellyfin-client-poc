@@ -54,8 +54,10 @@ class JellyfinClient(GeneratedApi, ClientBase):
         *,
         params: dict[str, Any] | None = None,
         json: Any = None,
+        content: bytes | None = None,
+        content_type: str | None = None,
     ) -> Any:
-        request = self._prepare(method, path, params, json)
+        request = self._prepare(method, path, params, json, content, content_type)
         response = self.transport.send(request, self.timeout)
         return self._decode(response, method, path)
 

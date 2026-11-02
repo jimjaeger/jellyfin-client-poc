@@ -67,7 +67,8 @@ def _authorized(request: web.Request) -> bool:
 
 def build_app(fake: FakeServer) -> web.Application:
     async def record(request: web.Request) -> None:
-        body = await request.json() if request.can_read_body else None
+        raw = await request.read() if request.can_read_body else b""
+        body = await request.json() if raw and request.content_type == "application/json" else None
         fake.requests.append(
             {
                 "method": request.method,
@@ -76,6 +77,8 @@ def build_app(fake: FakeServer) -> web.Application:
                 "query": dict(request.query),
                 "headers": dict(request.headers),
                 "json": body,
+                "raw": raw,
+                "content_type": request.content_type,
             }
         )
 
@@ -104,6 +107,10 @@ def build_app(fake: FakeServer) -> web.Application:
         if not _authorized(request):
             return web.Response(status=401)
         return web.Response(status=204)
+
+    async def lyrics(request: web.Request) -> web.Response:
+        await record(request)
+        return web.json_response({"Lyrics": [{"Text": (await request.text()).strip()}]})
 
     async def admin_only(request: web.Request) -> web.Response:
         await record(request)
@@ -137,6 +144,8 @@ def build_app(fake: FakeServer) -> web.Application:
     app.router.add_post("/Sessions/{session_id}/Playing/{command}", no_content)
     app.router.add_post("/Sessions/{session_id}/Command", no_content)
     app.router.add_get("/ScheduledTasks", admin_only)
+    app.router.add_post("/Items/{item_id}/Images/{image_type}", no_content)
+    app.router.add_post("/Audio/{item_id}/Lyrics", lyrics)
     app.router.add_get("/socket", socket)
     return app
 
