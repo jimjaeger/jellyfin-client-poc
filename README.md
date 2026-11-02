@@ -116,6 +116,11 @@ Regenerate with `python tools/generate.py`.
   no `userId` the server answers 400 instead.
 - Remote control of a playing Jellyfin Web session works: pause, unpause, seek, volume,
   mute and unmute.
+- Image upload: `post_user_image` with a PNG is accepted, `fetch_bytes` on the user image
+  URL returns the identical bytes (confirming the base64 encoding), and
+  `delete_user_image` removes it again.
+- Streaming: reading the first MiB of a movie and leaving the block stops the download
+  (aiohttp async and httpx sync); aiohttp holds no connection afterwards.
 - `SessionsStart` does not push the current sessions; the server sends `Sessions` only on
   changes, so the initial state has to come from REST.
 
