@@ -7,6 +7,8 @@ name = "jellyfin-client-poc"
 version = "0.0.1"
 description = "Proof of concept: Jellyfin client with generated models, sync and async stacks and pluggable HTTP adapters"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = []
 
 [project.optional-dependencies]

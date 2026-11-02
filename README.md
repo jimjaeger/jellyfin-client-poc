@@ -102,3 +102,7 @@ python -m pytest   # every test runs against all three stack/adapter combination
 mypy
 ruff check .
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
