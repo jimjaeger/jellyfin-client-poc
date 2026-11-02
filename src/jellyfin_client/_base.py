@@ -141,8 +141,7 @@ class ClientBase(GeneratedUrls):
         )
 
     @staticmethod
-    def _decode(response: Response, method: str, path: str) -> Any:
-        status = response.status
+    def _check_status(status: int, method: str, path: str) -> None:
         if status == 401:
             raise JellyfinAuthError(f"{method} {path} was rejected with HTTP 401")
         if status == 403:
@@ -151,12 +150,26 @@ class ClientBase(GeneratedUrls):
             raise JellyfinNotFoundError(f"{method} {path} not found")
         if status >= 400:
             raise JellyfinApiError(status, method, path)
+
+    @classmethod
+    def _decode(cls, response: Response, method: str, path: str) -> Any:
+        cls._check_status(response.status, method, path)
         if not response.body:
             return None
         try:
             return json.loads(response.body)
         except ValueError as err:
             raise JellyfinError("Response body is not JSON") from err
+
+    def _download_request(self, url: str) -> Request:
+        """GET request for a binary URL, authenticated by header.
+
+        Build the URL with ``include_token=False``; the header carries the token,
+        so it does not end up in server or proxy logs.
+        """
+        if not url.startswith(self.url):
+            raise ValueError("URL does not belong to this server")
+        return Request("GET", url, headers={"Authorization": self.authorization})
 
     def _store_login(self, result: models.AuthenticationResult) -> None:
         token = result.get("AccessToken")

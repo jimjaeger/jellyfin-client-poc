@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any, cast
 
 from .._base import (
@@ -14,7 +16,7 @@ from .._base import (
 )
 from ..generated import models
 from ..generated._async.endpoints import AsyncGeneratedApi
-from ..transport import AsyncTransport
+from ..transport import AsyncStreamResponse, AsyncTransport, safe_url
 
 
 async def async_connect_to_address(
@@ -59,6 +61,23 @@ class AsyncJellyfinClient(AsyncGeneratedApi, ClientBase):
         request = self._prepare(method, path, params, json, content, content_type)
         response = await self.transport.send(request, self.timeout)
         return self._decode(response, method, path)
+
+    @asynccontextmanager
+    async def stream(self, url: str) -> AsyncIterator[AsyncStreamResponse]:
+        """Open a binary download, e.g. from a ``*_url()`` builder.
+
+        Iterate ``response.iter_bytes(chunk_size)``; the connection closes when
+        the block exits, also when the caller stops reading early.
+        """
+        async with self.transport.stream(self._download_request(url), self.timeout) as response:
+            self._check_status(response.status, "GET", safe_url(url))
+            yield response
+
+    async def fetch_bytes(self, url: str) -> bytes:
+        """Download a small binary resource such as an image completely."""
+        response = await self.transport.send(self._download_request(url), self.timeout)
+        self._check_status(response.status, "GET", safe_url(url))
+        return response.body
 
     async def authenticate(self, username: str, password: str) -> models.AuthenticationResult:
         """Log in with username and password and keep the access token."""

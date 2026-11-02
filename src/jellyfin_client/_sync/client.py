@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any, cast
 
 from .._base import (
@@ -15,7 +17,7 @@ from .._base import (
 )
 from ..generated import models
 from ..generated._sync.endpoints import GeneratedApi
-from ..transport import SyncTransport
+from ..transport import SyncStreamResponse, SyncTransport, safe_url
 
 
 def connect_to_address(
@@ -60,6 +62,23 @@ class JellyfinClient(GeneratedApi, ClientBase):
         request = self._prepare(method, path, params, json, content, content_type)
         response = self.transport.send(request, self.timeout)
         return self._decode(response, method, path)
+
+    @contextmanager
+    def stream(self, url: str) -> Iterator[SyncStreamResponse]:
+        """Open a binary download, e.g. from a ``*_url()`` builder.
+
+        Iterate ``response.iter_bytes(chunk_size)``; the connection closes when
+        the block exits, also when the caller stops reading early.
+        """
+        with self.transport.stream(self._download_request(url), self.timeout) as response:
+            self._check_status(response.status, "GET", safe_url(url))
+            yield response
+
+    def fetch_bytes(self, url: str) -> bytes:
+        """Download a small binary resource such as an image completely."""
+        response = self.transport.send(self._download_request(url), self.timeout)
+        self._check_status(response.status, "GET", safe_url(url))
+        return response.body
 
     def authenticate(self, username: str, password: str) -> models.AuthenticationResult:
         """Log in with username and password and keep the access token."""

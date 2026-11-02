@@ -15,7 +15,15 @@ from jellyfin_client import (
     JellyfinNotFoundError,
 )
 
-from .conftest import PUBLIC_INFO, TOKEN, USER_ID, FakeServer, Stack
+from .conftest import (
+    DOWNLOAD_CHUNK,
+    DOWNLOAD_CHUNKS,
+    PUBLIC_INFO,
+    TOKEN,
+    USER_ID,
+    FakeServer,
+    Stack,
+)
 
 
 async def test_connect_to_address(fake_server: FakeServer, stack: Stack) -> None:
@@ -202,3 +210,57 @@ async def test_text_upload_is_raw(fake_server: FakeServer, stack: Stack, client:
     assert request["content_type"] == "text/plain"
     assert request["raw"] == b"[00:01.00] Hello"
     assert result == {"Lyrics": [{"Text": "[00:01.00] Hello"}]}
+
+
+async def test_stream_download(fake_server: FakeServer, stack: Stack, client: Any) -> None:
+    url = client.get_download_url("item-1", include_token=False)
+
+    data = await stack.read_stream(client, url)
+
+    assert data == DOWNLOAD_CHUNK * DOWNLOAD_CHUNKS
+    request = fake_server.requests[-1]
+    # Authenticated by header, so the token never appears in the URL.
+    assert "ApiKey" not in request["query"]
+    assert f'Token="{TOKEN}"' in request["headers"]["Authorization"]
+
+
+async def test_stream_stop_early(stack: Stack, client: Any) -> None:
+    url = client.get_download_url("item-1", include_token=False)
+
+    data = await stack.read_stream(client, url, limit=10_000)
+
+    assert 10_000 <= len(data) < len(DOWNLOAD_CHUNK) * DOWNLOAD_CHUNKS
+    assert data == (DOWNLOAD_CHUNK * DOWNLOAD_CHUNKS)[: len(data)]
+
+
+async def test_stream_errors(stack: Stack, client: Any) -> None:
+    with pytest.raises(JellyfinNotFoundError):
+        await stack.read_stream(client, client.get_download_url("x", include_token=False) + "/x")
+
+    client.token = "expired"
+    with pytest.raises(JellyfinAuthError):
+        await stack.read_stream(client, client.get_download_url("item-1", include_token=False))
+
+
+async def test_fetch_bytes(stack: Stack, client: Any) -> None:
+    data = await stack.call(
+        client.fetch_bytes, client.get_download_url("item-1", include_token=False)
+    )
+
+    assert data == DOWNLOAD_CHUNK * DOWNLOAD_CHUNKS
+
+
+async def test_download_rejects_foreign_host(stack: Stack, client: Any) -> None:
+    # The Authorization header must never be sent to another server.
+    with pytest.raises(ValueError):
+        await stack.call(client.fetch_bytes, "http://evil.example/Items/1/Download")
+
+
+async def test_connection_error_hides_token(stack: Stack, client: Any) -> None:
+    client.url = "http://127.0.0.1:1"
+    url = client.get_download_url("item-1")
+    assert TOKEN in url
+
+    with pytest.raises(JellyfinConnectionError) as err:
+        await stack.call(client.fetch_bytes, url)
+    assert TOKEN not in str(err.value)

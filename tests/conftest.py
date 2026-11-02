@@ -31,6 +31,9 @@ CLIENT_INFO = ClientInfo(
     client="Home Assistant", version="1.0", device='Living room, "TV"', device_id="dev-1"
 )
 
+DOWNLOAD_CHUNK = bytes(range(256)) * 64
+DOWNLOAD_CHUNKS = 32
+
 PUBLIC_INFO = {"Id": "server-1", "ServerName": "Test", "Version": "12.4.0"}
 SESSIONS = [
     {
@@ -112,6 +115,17 @@ def build_app(fake: FakeServer) -> web.Application:
         await record(request)
         return web.json_response({"Lyrics": [{"Text": (await request.text()).strip()}]})
 
+    async def download(request: web.Request) -> web.StreamResponse:
+        await record(request)
+        if not _authorized(request):
+            return web.Response(status=401)
+        response = web.StreamResponse()
+        await response.prepare(request)
+        for _ in range(DOWNLOAD_CHUNKS):
+            await response.write(DOWNLOAD_CHUNK)
+        await response.write_eof()
+        return response
+
     async def admin_only(request: web.Request) -> web.Response:
         await record(request)
         return web.Response(status=403 if _authorized(request) else 401)
@@ -144,6 +158,7 @@ def build_app(fake: FakeServer) -> web.Application:
     app.router.add_post("/Sessions/{session_id}/Playing/{command}", no_content)
     app.router.add_post("/Sessions/{session_id}/Command", no_content)
     app.router.add_get("/ScheduledTasks", admin_only)
+    app.router.add_get("/Items/{item_id}/Download", download)
     app.router.add_post("/Items/{item_id}/Images/{image_type}", no_content)
     app.router.add_post("/Audio/{item_id}/Lyrics", lyrics)
     app.router.add_get("/socket", socket)
@@ -186,6 +201,28 @@ class Stack:
     def websocket(self, client: Any, on_message: Callable[[Any], None], **kwargs: Any) -> Any:
         cls = AsyncJellyfinWebSocket if self.is_async else JellyfinWebSocket
         return cls(client, on_message, **kwargs)
+
+    async def read_stream(self, client: Any, url: str, limit: int | None = None) -> bytes:
+        """Read a download through client.stream(), stopping after ``limit`` bytes."""
+        if self.is_async:
+            data = b""
+            async with client.stream(url) as response:
+                async for chunk in response.iter_bytes(4096):
+                    data += chunk
+                    if limit is not None and len(data) >= limit:
+                        break
+            return data
+
+        def read() -> bytes:
+            data = b""
+            with client.stream(url) as response:
+                for chunk in response.iter_bytes(4096):
+                    data += chunk
+                    if limit is not None and len(data) >= limit:
+                        break
+            return data
+
+        return await asyncio.to_thread(read)
 
     def on_connect(self, record: Callable[[], None]) -> Callable[[], Any]:
         """Wrap a recorder as the connect callback this stack expects."""

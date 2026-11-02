@@ -10,7 +10,9 @@ import inspect
 import logging
 import re
 import ssl
-from typing import Any
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager, contextmanager
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -25,7 +27,10 @@ from websockets.sync.client import ClientConnection as SyncClientConnection
 from websockets.sync.client import connect as sync_connect
 
 from ..exceptions import JellyfinConnectionError
-from ..transport import Request, Response, websocket_rejected
+from ..transport import Request, Response, safe_url, websocket_rejected
+
+if TYPE_CHECKING:
+    from ..transport import AsyncTransport, SyncTransport
 
 # Detects silently dropped WebSocket connections; the server answers pings.
 DEFAULT_PING_INTERVAL = 30.0
@@ -91,8 +96,27 @@ class HttpxTransport:
                 follow_redirects=True,
             )
         except httpx.HTTPError as err:
-            raise JellyfinConnectionError(f"{request.method} {request.url} failed: {err}") from err
+            raise JellyfinConnectionError(
+                f"{request.method} {safe_url(request.url)} failed: {err}"
+            ) from err
         return Response(resp.status_code, resp.content, str(resp.url))
+
+    @contextmanager
+    def stream(self, request: Request, timeout: float) -> Iterator[HttpxSyncStreamResponse]:
+        try:
+            with self._client.stream(
+                request.method,
+                request.url,
+                params=request.params,
+                headers=request.headers,
+                timeout=timeout,
+                follow_redirects=True,
+            ) as resp:
+                yield HttpxSyncStreamResponse(resp)
+        except httpx.HTTPError as err:
+            raise JellyfinConnectionError(
+                f"{request.method} {safe_url(request.url)} failed: {err}"
+            ) from err
 
     def connect_websocket(
         self, url: str, headers: dict[str, str], timeout: float
@@ -112,6 +136,27 @@ class HttpxTransport:
         except (OSError, TimeoutError, WebSocketException) as err:
             raise JellyfinConnectionError(f"WebSocket connection failed: {err}") from err
         return HttpxSyncWebSocket(ws)
+
+
+class HttpxSyncStreamResponse:
+    """Streaming httpx response."""
+
+    def __init__(self, resp: httpx.Response) -> None:
+        self._resp = resp
+
+    @property
+    def status(self) -> int:
+        return self._resp.status_code
+
+    @property
+    def url(self) -> str:
+        return str(self._resp.url)
+
+    def iter_bytes(self, chunk_size: int) -> Iterator[bytes]:
+        try:
+            yield from self._resp.iter_bytes(chunk_size)
+        except httpx.HTTPError as err:
+            raise JellyfinConnectionError(f"Reading {safe_url(self.url)} failed: {err}") from err
 
 
 class HttpxSyncWebSocket:
@@ -166,8 +211,29 @@ class HttpxAsyncTransport:
                 follow_redirects=True,
             )
         except httpx.HTTPError as err:
-            raise JellyfinConnectionError(f"{request.method} {request.url} failed: {err}") from err
+            raise JellyfinConnectionError(
+                f"{request.method} {safe_url(request.url)} failed: {err}"
+            ) from err
         return Response(resp.status_code, resp.content, str(resp.url))
+
+    @asynccontextmanager
+    async def stream(
+        self, request: Request, timeout: float
+    ) -> AsyncIterator[HttpxAsyncStreamResponse]:
+        try:
+            async with self._client.stream(
+                request.method,
+                request.url,
+                params=request.params,
+                headers=request.headers,
+                timeout=timeout,
+                follow_redirects=True,
+            ) as resp:
+                yield HttpxAsyncStreamResponse(resp)
+        except httpx.HTTPError as err:
+            raise JellyfinConnectionError(
+                f"{request.method} {safe_url(request.url)} failed: {err}"
+            ) from err
 
     async def connect_websocket(
         self, url: str, headers: dict[str, str], timeout: float
@@ -186,6 +252,28 @@ class HttpxAsyncTransport:
         except (OSError, TimeoutError, WebSocketException) as err:
             raise JellyfinConnectionError(f"WebSocket connection failed: {err}") from err
         return HttpxAsyncWebSocket(ws)
+
+
+class HttpxAsyncStreamResponse:
+    """Streaming httpx response."""
+
+    def __init__(self, resp: httpx.Response) -> None:
+        self._resp = resp
+
+    @property
+    def status(self) -> int:
+        return self._resp.status_code
+
+    @property
+    def url(self) -> str:
+        return str(self._resp.url)
+
+    async def iter_bytes(self, chunk_size: int) -> AsyncIterator[bytes]:
+        try:
+            async for chunk in self._resp.aiter_bytes(chunk_size):
+                yield chunk
+        except httpx.HTTPError as err:
+            raise JellyfinConnectionError(f"Reading {safe_url(self.url)} failed: {err}") from err
 
 
 class HttpxAsyncWebSocket:
@@ -212,3 +300,12 @@ class HttpxAsyncWebSocket:
 
     async def close(self) -> None:
         await self._ws.close()
+
+
+if TYPE_CHECKING:
+
+    def _implements_sync_protocol(transport: HttpxTransport) -> SyncTransport:
+        return transport
+
+    def _implements_async_protocol(transport: HttpxAsyncTransport) -> AsyncTransport:
+        return transport
