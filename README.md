@@ -49,7 +49,7 @@ All paths are below `src/jellyfin_client/`, except `spec/` and `tools/`.
 | `spec/jellyfin-openapi.json` | — | Stable spec 12.4.0 from repo.jellyfin.org |
 | `tools/generate.py` | by hand | Generates models and async endpoints, then derives the sync stack with [unasync](https://github.com/python-trio/unasync) |
 | `generated/models.py` | generated | 357 TypedDicts and `Literal` enum aliases, including the WebSocket messages |
-| `generated/_async/endpoints.py` | generated | 299 async endpoint methods covering every tag, including uploads |
+| `generated/_async/endpoints.py` | generated | 311 async endpoint methods covering every tag, including uploads and deprecated operations |
 | `generated/_sync/endpoints.py` | unasync | Same methods, sync |
 | `generated/urls.py` | generated | 35 URL builders for endpoints returning images, streams or files (shared by both stacks) |
 | `transport.py` | by hand | `Request`/`Response` and the `AsyncTransport`/`SyncTransport` protocols that adapters implement |
@@ -70,6 +70,9 @@ Regenerate with `python tools/generate.py`.
   the models dominate. GET endpoints returning images, streams or files become URL
   builders (`get_trickplay_tile_image_url(...)`, `get_item_image_url(...)`) with every
   query parameter from the spec. HEAD variants are skipped, and the generator lists them.
+  Operations the spec marks deprecated are generated too and say so in their docstring:
+  the server still answers them, and some have no replacement yet (`get_artists`,
+  `get_album_artists`).
 - **Uploads are generated too.** Image uploads are sent base64-encoded: the spec declares
   them binary, but the server decodes them as base64 (`GetFromBase64Stream` in
   `ImageController`). Lyrics and client logs are sent as raw text.

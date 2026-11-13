@@ -225,6 +225,14 @@ class Signature:
         return f"{{{mapping}}}"
 
 
+def deprecated_note(op: dict[str, Any]) -> str:
+    # Deprecated operations are still served and some have no replacement yet
+    # (GET /Artists, /Artists/AlbumArtists), so they are generated, not skipped.
+    if not op.get("deprecated"):
+        return ""
+    return "        Deprecated in the spec; the server still answers it.\n"
+
+
 def render_method(
     path: str, http_method: str, op: dict[str, Any], sig: Signature, returns: str
 ) -> str:
@@ -241,9 +249,9 @@ def render_method(
     if returns != "None":
         request = f'return cast("{returns}", {request})'
     summary = docstring(op.get("summary") or op["operationId"])
-    note = ""
+    note = deprecated_note(op)
     if sig.upload and sig.upload[0] == "base64":
-        note = "        Pass the raw bytes; they are sent base64-encoded as the server expects.\n"
+        note += "        Pass the raw bytes; they are sent base64-encoded as the server expects.\n"
     return (
         f"    async def {snake(op['operationId'])}({', '.join(sig.args())}) -> {returns}:\n"
         f'        """{summary}\n\n'
@@ -263,6 +271,7 @@ def render_url_builder(path: str, op: dict[str, Any], sig: Signature) -> str:
         f"    def {snake(op['operationId'])}_url({', '.join(args)}) -> str:\n"
         f'        """URL: {summary}\n\n'
         f"        GET {path}\n"
+        f"{deprecated_note(op)}"
         f'        """\n'
         f"        return {build}\n"
     )
@@ -279,8 +288,6 @@ def render_endpoints(spec: dict[str, Any]) -> tuple[str, str, dict[str, int], li
     skipped: list[str] = []
     for path, item in spec["paths"].items():
         for http_method, op in item.items():
-            if op.get("deprecated"):
-                continue
             kind, schema = classify(op, http_method)
             if kind == "skip":
                 assert schema is not None

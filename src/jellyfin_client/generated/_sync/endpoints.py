@@ -100,6 +100,183 @@ class GeneratedApi:
         """
         self._request("DELETE", f"/Auth/Keys/{_quote(key)}")
 
+    def get_artists(
+        self,
+        *,
+        min_community_rating: float | None = None,
+        start_index: int | None = None,
+        limit: int | None = None,
+        search_term: str | None = None,
+        parent_id: str | None = None,
+        fields: list[models.ItemFields] | None = None,
+        exclude_item_types: list[models.BaseItemKind] | None = None,
+        include_item_types: list[models.BaseItemKind] | None = None,
+        filters: list[models.ItemFilter] | None = None,
+        is_favorite: bool | None = None,
+        media_types: list[models.MediaType] | None = None,
+        genres: list[str] | None = None,
+        genre_ids: list[str] | None = None,
+        official_ratings: list[str] | None = None,
+        tags: list[str] | None = None,
+        years: list[int] | None = None,
+        enable_user_data: bool | None = None,
+        image_type_limit: int | None = None,
+        enable_image_types: list[models.ImageType] | None = None,
+        person: str | None = None,
+        person_ids: list[str] | None = None,
+        person_types: list[str] | None = None,
+        studios: list[str] | None = None,
+        studio_ids: list[str] | None = None,
+        user_id: str | None = None,
+        name_starts_with_or_greater: str | None = None,
+        name_starts_with: str | None = None,
+        name_less_than: str | None = None,
+        sort_by: list[models.ItemSortBy] | None = None,
+        sort_order: list[models.SortOrder] | None = None,
+        enable_images: bool | None = None,
+        enable_total_record_count: bool | None = None,
+    ) -> models.BaseItemDtoQueryResult:
+        """Gets all artists from a given item, folder, or the entire library.
+
+        GET /Artists
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDtoQueryResult",
+            self._request(
+                "GET",
+                "/Artists",
+                params={
+                    "minCommunityRating": min_community_rating,
+                    "startIndex": start_index,
+                    "limit": limit,
+                    "searchTerm": search_term,
+                    "parentId": parent_id,
+                    "fields": fields,
+                    "excludeItemTypes": exclude_item_types,
+                    "includeItemTypes": include_item_types,
+                    "filters": filters,
+                    "isFavorite": is_favorite,
+                    "mediaTypes": media_types,
+                    "genres": genres,
+                    "genreIds": genre_ids,
+                    "officialRatings": official_ratings,
+                    "tags": tags,
+                    "years": years,
+                    "enableUserData": enable_user_data,
+                    "imageTypeLimit": image_type_limit,
+                    "enableImageTypes": enable_image_types,
+                    "person": person,
+                    "personIds": person_ids,
+                    "personTypes": person_types,
+                    "studios": studios,
+                    "studioIds": studio_ids,
+                    "userId": user_id,
+                    "nameStartsWithOrGreater": name_starts_with_or_greater,
+                    "nameStartsWith": name_starts_with,
+                    "nameLessThan": name_less_than,
+                    "sortBy": sort_by,
+                    "sortOrder": sort_order,
+                    "enableImages": enable_images,
+                    "enableTotalRecordCount": enable_total_record_count,
+                },
+            ),
+        )
+
+    def get_artist_by_name(self, name: str, *, user_id: str | None = None) -> models.BaseItemDto:
+        """Gets an artist by name.
+
+        GET /Artists/{name}
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDto",
+            self._request("GET", f"/Artists/{_quote(name)}", params={"userId": user_id}),
+        )
+
+    def get_album_artists(
+        self,
+        *,
+        min_community_rating: float | None = None,
+        start_index: int | None = None,
+        limit: int | None = None,
+        search_term: str | None = None,
+        parent_id: str | None = None,
+        fields: list[models.ItemFields] | None = None,
+        exclude_item_types: list[models.BaseItemKind] | None = None,
+        include_item_types: list[models.BaseItemKind] | None = None,
+        filters: list[models.ItemFilter] | None = None,
+        is_favorite: bool | None = None,
+        media_types: list[models.MediaType] | None = None,
+        genres: list[str] | None = None,
+        genre_ids: list[str] | None = None,
+        official_ratings: list[str] | None = None,
+        tags: list[str] | None = None,
+        years: list[int] | None = None,
+        enable_user_data: bool | None = None,
+        image_type_limit: int | None = None,
+        enable_image_types: list[models.ImageType] | None = None,
+        person: str | None = None,
+        person_ids: list[str] | None = None,
+        person_types: list[str] | None = None,
+        studios: list[str] | None = None,
+        studio_ids: list[str] | None = None,
+        user_id: str | None = None,
+        name_starts_with_or_greater: str | None = None,
+        name_starts_with: str | None = None,
+        name_less_than: str | None = None,
+        sort_by: list[models.ItemSortBy] | None = None,
+        sort_order: list[models.SortOrder] | None = None,
+        enable_images: bool | None = None,
+        enable_total_record_count: bool | None = None,
+    ) -> models.BaseItemDtoQueryResult:
+        """Gets all album artists from a given item, folder, or the entire library.
+
+        GET /Artists/AlbumArtists
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDtoQueryResult",
+            self._request(
+                "GET",
+                "/Artists/AlbumArtists",
+                params={
+                    "minCommunityRating": min_community_rating,
+                    "startIndex": start_index,
+                    "limit": limit,
+                    "searchTerm": search_term,
+                    "parentId": parent_id,
+                    "fields": fields,
+                    "excludeItemTypes": exclude_item_types,
+                    "includeItemTypes": include_item_types,
+                    "filters": filters,
+                    "isFavorite": is_favorite,
+                    "mediaTypes": media_types,
+                    "genres": genres,
+                    "genreIds": genre_ids,
+                    "officialRatings": official_ratings,
+                    "tags": tags,
+                    "years": years,
+                    "enableUserData": enable_user_data,
+                    "imageTypeLimit": image_type_limit,
+                    "enableImageTypes": enable_image_types,
+                    "person": person,
+                    "personIds": person_ids,
+                    "personTypes": person_types,
+                    "studios": studios,
+                    "studioIds": studio_ids,
+                    "userId": user_id,
+                    "nameStartsWithOrGreater": name_starts_with_or_greater,
+                    "nameStartsWith": name_starts_with,
+                    "nameLessThan": name_less_than,
+                    "sortBy": sort_by,
+                    "sortOrder": sort_order,
+                    "enableImages": enable_images,
+                    "enableTotalRecordCount": enable_total_record_count,
+                },
+            ),
+        )
+
     def list_backups(self) -> list[models.BackupManifestDto]:
         """Gets a list of all currently present backups in the backup directory.
 
@@ -850,6 +1027,75 @@ class GeneratedApi:
                 "GET",
                 f"/Items/{_quote(item_id)}/InstantMix",
                 params={
+                    "userId": user_id,
+                    "limit": limit,
+                    "fields": fields,
+                    "enableImages": enable_images,
+                    "enableUserData": enable_user_data,
+                    "imageTypeLimit": image_type_limit,
+                    "enableImageTypes": enable_image_types,
+                },
+            ),
+        )
+
+    def get_instant_mix_from_music_genre_by_name(
+        self,
+        name: str,
+        *,
+        user_id: str | None = None,
+        limit: int | None = None,
+        fields: list[models.ItemFields] | None = None,
+        enable_images: bool | None = None,
+        enable_user_data: bool | None = None,
+        image_type_limit: int | None = None,
+        enable_image_types: list[models.ImageType] | None = None,
+    ) -> models.BaseItemDtoQueryResult:
+        """Creates an instant playlist based on a given genre.
+
+        GET /MusicGenres/{name}/InstantMix
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDtoQueryResult",
+            self._request(
+                "GET",
+                f"/MusicGenres/{_quote(name)}/InstantMix",
+                params={
+                    "userId": user_id,
+                    "limit": limit,
+                    "fields": fields,
+                    "enableImages": enable_images,
+                    "enableUserData": enable_user_data,
+                    "imageTypeLimit": image_type_limit,
+                    "enableImageTypes": enable_image_types,
+                },
+            ),
+        )
+
+    def get_instant_mix_from_music_genre_by_id(
+        self,
+        *,
+        id: str,
+        user_id: str | None = None,
+        limit: int | None = None,
+        fields: list[models.ItemFields] | None = None,
+        enable_images: bool | None = None,
+        enable_user_data: bool | None = None,
+        image_type_limit: int | None = None,
+        enable_image_types: list[models.ImageType] | None = None,
+    ) -> models.BaseItemDtoQueryResult:
+        """Creates an instant playlist based on a given genre.
+
+        GET /MusicGenres/InstantMix
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDtoQueryResult",
+            self._request(
+                "GET",
+                "/MusicGenres/InstantMix",
+                params={
+                    "id": id,
                     "userId": user_id,
                     "limit": limit,
                     "fields": fields,
@@ -2739,6 +2985,17 @@ class GeneratedApi:
             ),
         )
 
+    def get_music_genre(self, genre_name: str, *, user_id: str | None = None) -> models.BaseItemDto:
+        """Gets a music genre, by name.
+
+        GET /MusicGenres/{genreName}
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDto",
+            self._request("GET", f"/MusicGenres/{_quote(genre_name)}", params={"userId": user_id}),
+        )
+
     def get_packages(self) -> list[models.PackageInfo]:
         """Gets available packages.
 
@@ -3518,6 +3775,48 @@ class GeneratedApi:
         """
         self._request("POST", "/Startup/Complete")
 
+    def get_startup_configuration(self) -> models.StartupConfigurationDto:
+        """Gets the initial startup wizard configuration.
+
+        GET /Startup/Configuration
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.StartupConfigurationDto", self._request("GET", "/Startup/Configuration")
+        )
+
+    def update_initial_configuration(self, *, body: models.StartupConfigurationDto) -> None:
+        """Sets the initial startup wizard configuration.
+
+        POST /Startup/Configuration
+        Deprecated in the spec; the server still answers it.
+        """
+        self._request("POST", "/Startup/Configuration", json=body)
+
+    def get_first_user_2(self) -> models.StartupUserDto:
+        """Gets the first user.
+
+        GET /Startup/FirstUser
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast("models.StartupUserDto", self._request("GET", "/Startup/FirstUser"))
+
+    def set_remote_access(self, *, body: models.StartupRemoteAccessDto) -> None:
+        """Sets remote access and UPnP.
+
+        POST /Startup/RemoteAccess
+        Deprecated in the spec; the server still answers it.
+        """
+        self._request("POST", "/Startup/RemoteAccess", json=body)
+
+    def get_first_user(self) -> models.StartupUserDto:
+        """Gets the first user.
+
+        GET /Startup/User
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast("models.StartupUserDto", self._request("GET", "/Startup/User"))
+
     def update_startup_user(self, *, body: models.StartupUserDto | None = None) -> None:
         """Sets the user name and password.
 
@@ -3886,6 +4185,197 @@ class GeneratedApi:
         GET /GetUtcTime
         """
         return cast("models.UtcTimeResponse", self._request("GET", "/GetUtcTime"))
+
+    def get_trailers(
+        self,
+        *,
+        user_id: str | None = None,
+        max_official_rating: str | None = None,
+        has_theme_song: bool | None = None,
+        has_theme_video: bool | None = None,
+        has_subtitles: bool | None = None,
+        has_special_feature: bool | None = None,
+        has_trailer: bool | None = None,
+        adjacent_to: str | None = None,
+        parent_index_number: int | None = None,
+        has_parental_rating: bool | None = None,
+        is_hd: bool | None = None,
+        is4_k: bool | None = None,
+        location_types: list[models.LocationType] | None = None,
+        exclude_location_types: list[models.LocationType] | None = None,
+        is_missing: bool | None = None,
+        is_unaired: bool | None = None,
+        min_community_rating: float | None = None,
+        min_critic_rating: float | None = None,
+        min_premiere_date: str | None = None,
+        min_date_last_saved: str | None = None,
+        min_date_last_saved_for_user: str | None = None,
+        max_premiere_date: str | None = None,
+        has_overview: bool | None = None,
+        has_imdb_id: bool | None = None,
+        has_tmdb_id: bool | None = None,
+        has_tvdb_id: bool | None = None,
+        is_movie: bool | None = None,
+        is_series: bool | None = None,
+        is_news: bool | None = None,
+        is_kids: bool | None = None,
+        is_sports: bool | None = None,
+        exclude_item_ids: list[str] | None = None,
+        start_index: int | None = None,
+        limit: int | None = None,
+        recursive: bool | None = None,
+        search_term: str | None = None,
+        sort_order: list[models.SortOrder] | None = None,
+        parent_id: str | None = None,
+        fields: list[models.ItemFields] | None = None,
+        exclude_item_types: list[models.BaseItemKind] | None = None,
+        filters: list[models.ItemFilter] | None = None,
+        is_favorite: bool | None = None,
+        media_types: list[models.MediaType] | None = None,
+        image_types: list[models.ImageType] | None = None,
+        sort_by: list[models.ItemSortBy] | None = None,
+        is_played: bool | None = None,
+        genres: list[str] | None = None,
+        official_ratings: list[str] | None = None,
+        tags: list[str] | None = None,
+        years: list[int] | None = None,
+        enable_user_data: bool | None = None,
+        image_type_limit: int | None = None,
+        enable_image_types: list[models.ImageType] | None = None,
+        person: str | None = None,
+        person_ids: list[str] | None = None,
+        person_types: list[str] | None = None,
+        studios: list[str] | None = None,
+        artists: list[str] | None = None,
+        exclude_artist_ids: list[str] | None = None,
+        artist_ids: list[str] | None = None,
+        album_artist_ids: list[str] | None = None,
+        contributing_artist_ids: list[str] | None = None,
+        albums: list[str] | None = None,
+        album_ids: list[str] | None = None,
+        ids: list[str] | None = None,
+        video_types: list[models.VideoType] | None = None,
+        min_official_rating: str | None = None,
+        is_locked: bool | None = None,
+        is_place_holder: bool | None = None,
+        has_official_rating: bool | None = None,
+        collapse_box_set_items: bool | None = None,
+        min_width: int | None = None,
+        min_height: int | None = None,
+        max_width: int | None = None,
+        max_height: int | None = None,
+        is3_d: bool | None = None,
+        series_status: list[models.SeriesStatus] | None = None,
+        name_starts_with_or_greater: str | None = None,
+        name_starts_with: str | None = None,
+        name_less_than: str | None = None,
+        studio_ids: list[str] | None = None,
+        genre_ids: list[str] | None = None,
+        audio_languages: list[str] | None = None,
+        subtitle_languages: list[str] | None = None,
+        enable_total_record_count: bool | None = None,
+        enable_images: bool | None = None,
+    ) -> models.BaseItemDtoQueryResult:
+        """Finds movies and trailers similar to a given trailer.
+
+        GET /Trailers
+        Deprecated in the spec; the server still answers it.
+        """
+        return cast(
+            "models.BaseItemDtoQueryResult",
+            self._request(
+                "GET",
+                "/Trailers",
+                params={
+                    "userId": user_id,
+                    "maxOfficialRating": max_official_rating,
+                    "hasThemeSong": has_theme_song,
+                    "hasThemeVideo": has_theme_video,
+                    "hasSubtitles": has_subtitles,
+                    "hasSpecialFeature": has_special_feature,
+                    "hasTrailer": has_trailer,
+                    "adjacentTo": adjacent_to,
+                    "parentIndexNumber": parent_index_number,
+                    "hasParentalRating": has_parental_rating,
+                    "isHd": is_hd,
+                    "is4K": is4_k,
+                    "locationTypes": location_types,
+                    "excludeLocationTypes": exclude_location_types,
+                    "isMissing": is_missing,
+                    "isUnaired": is_unaired,
+                    "minCommunityRating": min_community_rating,
+                    "minCriticRating": min_critic_rating,
+                    "minPremiereDate": min_premiere_date,
+                    "minDateLastSaved": min_date_last_saved,
+                    "minDateLastSavedForUser": min_date_last_saved_for_user,
+                    "maxPremiereDate": max_premiere_date,
+                    "hasOverview": has_overview,
+                    "hasImdbId": has_imdb_id,
+                    "hasTmdbId": has_tmdb_id,
+                    "hasTvdbId": has_tvdb_id,
+                    "isMovie": is_movie,
+                    "isSeries": is_series,
+                    "isNews": is_news,
+                    "isKids": is_kids,
+                    "isSports": is_sports,
+                    "excludeItemIds": exclude_item_ids,
+                    "startIndex": start_index,
+                    "limit": limit,
+                    "recursive": recursive,
+                    "searchTerm": search_term,
+                    "sortOrder": sort_order,
+                    "parentId": parent_id,
+                    "fields": fields,
+                    "excludeItemTypes": exclude_item_types,
+                    "filters": filters,
+                    "isFavorite": is_favorite,
+                    "mediaTypes": media_types,
+                    "imageTypes": image_types,
+                    "sortBy": sort_by,
+                    "isPlayed": is_played,
+                    "genres": genres,
+                    "officialRatings": official_ratings,
+                    "tags": tags,
+                    "years": years,
+                    "enableUserData": enable_user_data,
+                    "imageTypeLimit": image_type_limit,
+                    "enableImageTypes": enable_image_types,
+                    "person": person,
+                    "personIds": person_ids,
+                    "personTypes": person_types,
+                    "studios": studios,
+                    "artists": artists,
+                    "excludeArtistIds": exclude_artist_ids,
+                    "artistIds": artist_ids,
+                    "albumArtistIds": album_artist_ids,
+                    "contributingArtistIds": contributing_artist_ids,
+                    "albums": albums,
+                    "albumIds": album_ids,
+                    "ids": ids,
+                    "videoTypes": video_types,
+                    "minOfficialRating": min_official_rating,
+                    "isLocked": is_locked,
+                    "isPlaceHolder": is_place_holder,
+                    "hasOfficialRating": has_official_rating,
+                    "collapseBoxSetItems": collapse_box_set_items,
+                    "minWidth": min_width,
+                    "minHeight": min_height,
+                    "maxWidth": max_width,
+                    "maxHeight": max_height,
+                    "is3D": is3_d,
+                    "seriesStatus": series_status,
+                    "nameStartsWithOrGreater": name_starts_with_or_greater,
+                    "nameStartsWith": name_starts_with,
+                    "nameLessThan": name_less_than,
+                    "studioIds": studio_ids,
+                    "genreIds": genre_ids,
+                    "audioLanguages": audio_languages,
+                    "subtitleLanguages": subtitle_languages,
+                    "enableTotalRecordCount": enable_total_record_count,
+                    "enableImages": enable_images,
+                },
+            ),
+        )
 
     def get_episodes(
         self,
