@@ -56,7 +56,13 @@ class FakeServer:
     reject_ws: bool = False
     close_ws_once: bool = False
     ws_script: list[dict[str, Any]] = field(default_factory=list)
+    open_ws: list[web.WebSocketResponse] = field(default_factory=list)
     server: TestServer | None = None
+
+    async def drop_websockets(self) -> None:
+        """Close every open WebSocket from the server side, like a restart."""
+        for ws in list(self.open_ws):
+            await ws.close()
 
     @property
     def url(self) -> str:
@@ -143,9 +149,13 @@ def build_app(fake: FakeServer) -> web.Application:
             fake.close_ws_once = False
             await ws.close()
             return ws
-        async for msg in ws:
-            if msg.type is aiohttp.WSMsgType.TEXT:
-                fake.ws_messages.append(msg.json())
+        fake.open_ws.append(ws)
+        try:
+            async for msg in ws:
+                if msg.type is aiohttp.WSMsgType.TEXT:
+                    fake.ws_messages.append(msg.json())
+        finally:
+            fake.open_ws.remove(ws)
         return ws
 
     app = web.Application()

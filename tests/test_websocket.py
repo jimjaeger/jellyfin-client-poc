@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from jellyfin_client import JellyfinAuthError
+from jellyfin_client import JellyfinAuthError, JellyfinConnectionError
 
 from .conftest import SESSIONS, TOKEN, FakeServer, Stack, stop_websocket
 
@@ -78,7 +78,7 @@ async def test_reconnects_after_server_close(
     task = asyncio.create_task(stack.call(ws.run))
 
     # Depending on timing the first connection closes before on_connect runs.
-    await wait_for(lambda: fake_server.ws_connections == 2 and ws.connected and connects)
+    await wait_for(lambda: fake_server.ws_connections == 2 and ws.connected and bool(connects))
     await wait_for(lambda: len(fake_server.ws_messages) == 1)
     assert fake_server.ws_messages == [{"MessageType": "SessionsStart", "Data": "0,1500"}]
     await stop_websocket(stack, ws, task)
@@ -135,3 +135,62 @@ async def test_token_not_logged(
     await stop_websocket(stack, ws, task)
 
     assert TOKEN not in caplog.text
+
+
+async def test_subscriptions_are_renewed_after_reconnect(
+    fake_server: FakeServer, stack: Stack, client: Any
+) -> None:
+    ws = stack.websocket(client, lambda _: None, min_backoff=0.01)
+    await stack.call(ws.subscribe, "ScheduledTasksInfo", "0,1000")
+    task = asyncio.create_task(stack.call(ws.run))
+    await wait_for(lambda: len(fake_server.ws_messages) == 2)
+
+    await fake_server.drop_websockets()
+    await wait_for(lambda: len(fake_server.ws_messages) == 4)
+
+    start_sessions = {"MessageType": "SessionsStart", "Data": "0,1500"}
+    start_tasks = {"MessageType": "ScheduledTasksInfoStart", "Data": "0,1000"}
+    assert fake_server.ws_messages == [start_sessions, start_tasks] * 2
+    await stop_websocket(stack, ws, task)
+
+
+async def test_subscribe_and_unsubscribe_while_connected(
+    fake_server: FakeServer, stack: Stack, client: Any
+) -> None:
+    connects: list[None] = []
+    ws = stack.websocket(
+        client,
+        lambda _: None,
+        on_connect=stack.on_connect(lambda: connects.append(None)),
+        subscribe_sessions=False,
+        min_backoff=0.01,
+    )
+    task = asyncio.create_task(stack.call(ws.run))
+    # on_connect runs after the stored subscriptions went out.
+    await wait_for(lambda: len(connects) == 1)
+
+    # From the test's task or thread while run() is receiving.
+    await stack.call(ws.subscribe, "ActivityLogEntry", "0,1000")
+    await stack.call(ws.unsubscribe, "ActivityLogEntry")
+    await wait_for(lambda: len(fake_server.ws_messages) == 2)
+    assert fake_server.ws_messages == [
+        {"MessageType": "ActivityLogEntryStart", "Data": "0,1000"},
+        {"MessageType": "ActivityLogEntryStop"},
+    ]
+
+    # Not renewed: the next connection starts without any subscription.
+    await fake_server.drop_websockets()
+    await wait_for(lambda: len(connects) == 2)
+    await stack.call(ws.send, "SessionsStop")
+    await wait_for(lambda: len(fake_server.ws_messages) == 3)
+    assert fake_server.ws_messages[2] == {"MessageType": "SessionsStop"}
+    await stop_websocket(stack, ws, task)
+
+
+async def test_send_without_connection_raises(stack: Stack, client: Any) -> None:
+    ws = stack.websocket(client, lambda _: None)
+
+    with pytest.raises(JellyfinConnectionError):
+        await stack.call(ws.send, "SessionsStop")
+    # Remembered for the first connection instead of raising.
+    await stack.call(ws.subscribe, "ScheduledTasksInfo")

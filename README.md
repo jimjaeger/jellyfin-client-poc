@@ -89,6 +89,11 @@ Regenerate with `python tools/generate.py`.
 - **Only the async code is written by hand.** The WebSocket runs a single receive loop:
   KeepAlive is driven by the receive timeout, without a helper task. So unasync can turn
   it into the sync version unchanged. `stop()` works from any task or thread.
+- **WebSocket subscriptions survive reconnects.** `subscribe("ScheduledTasksInfo", "0,1000")`
+  sends `ScheduledTasksInfoStart` now and again after every reconnect, before
+  `on_connect`; `unsubscribe()` sends the Stop message and forgets it. Sessions are
+  subscribed by default. `send()` is for one-off messages and raises
+  `JellyfinConnectionError` without a connection instead of queueing.
 - **The caller owns the HTTP session or client**, so Home Assistant can pass its shared
   aiohttp session.
 - **Header-based auth.** `Authorization: MediaBrowser …` for requests and the WebSocket;
@@ -125,6 +130,10 @@ Regenerate with `python tools/generate.py`.
   (aiohttp async and httpx sync); aiohttp holds no connection afterwards.
 - `SessionsStart` does not push the current sessions; the server sends `Sessions` only on
   changes, so the initial state has to come from REST.
+- The feeds only report changes: subscribing alone brings no message. With a second
+  device logging in and out as the change, `Sessions` (as a user) and `ActivityLogEntry`
+  (with an admin API key) arrive while subscribed, stop after `unsubscribe()`, and arrive
+  again after a dropped connection without subscribing again.
 
 ### In the shape of jellyfin-mpv-shim
 

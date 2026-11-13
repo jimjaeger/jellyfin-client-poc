@@ -13,7 +13,7 @@ import random
 import time
 from collections.abc import Callable
 from time import sleep
-from typing import Any
+from typing import Any, Literal
 
 from ..exceptions import JellyfinConnectionError
 from ..generated import models
@@ -31,6 +31,8 @@ STOP_POLL_INTERVAL = 0.2
 KEEPALIVE = json.dumps({"MessageType": "KeepAlive"})
 
 type MessageCallback = Callable[[models.OutboundWebSocketMessage], None]
+# Server feeds a client can subscribe to with <Feed>Start and end with <Feed>Stop.
+type Feed = Literal["Sessions", "ScheduledTasksInfo", "ActivityLogEntry"]
 
 
 class JellyfinWebSocket:
@@ -39,6 +41,9 @@ class JellyfinWebSocket:
     Messages are change hints, not full state: the server does not push the
     current sessions on subscribe. ``on_connect`` runs after every
     (re)connect so callers can load or resync state over REST.
+
+    Subscriptions made with ``subscribe()`` are sent again after every
+    reconnect, before ``on_connect`` runs.
     """
 
     def __init__(
@@ -54,7 +59,9 @@ class JellyfinWebSocket:
         self._client = client
         self._on_message = on_message
         self._on_connect = on_connect
-        self._subscribe_sessions = subscribe_sessions
+        self._subscriptions: dict[str, str | None] = {}
+        if subscribe_sessions:
+            self._subscriptions["Sessions"] = SESSIONS_TIMING
         self._min_backoff = min_backoff
         self._max_backoff = max_backoff
         self._connection: SyncWebSocket | None = None
@@ -79,6 +86,35 @@ class JellyfinWebSocket:
             self._wait(delay * random.uniform(0.5, 1.5))
             delay = min(delay * 2, self._max_backoff)
 
+    def send(self, message_type: str, data: Any = None) -> None:
+        """Send one message to the server.
+
+        Raises JellyfinConnectionError when there is no open connection; the
+        message is not queued for the next one.
+        """
+        connection = self._connection
+        if connection is None:
+            raise JellyfinConnectionError("WebSocket is not connected")
+        connection.send_text(_encode(message_type, data))
+
+    def subscribe(self, feed: Feed | str, data: str | None = None) -> None:
+        """Subscribe to a server feed, now and after every reconnect.
+
+        ``data`` is the feed's timing, "<initial delay ms>,<interval ms>",
+        e.g. "0,1500" as jellyfin-web uses for sessions. Called while a
+        connection is being set up, the Start message is sent at least once
+        and may be sent twice.
+        """
+        self._subscriptions[feed] = data
+        if self._connection is not None:
+            self.send(f"{feed}Start", data)
+
+    def unsubscribe(self, feed: Feed | str) -> None:
+        """End a subscription and stop renewing it on reconnect."""
+        self._subscriptions.pop(feed, None)
+        if self._connection is not None:
+            self.send(f"{feed}Stop")
+
     def stop(self) -> None:
         """Close the connection and end run()."""
         self._stopped = True
@@ -101,10 +137,9 @@ class JellyfinWebSocket:
         try:
             if self._stopped:
                 return
-            if self._subscribe_sessions:
-                connection.send_text(
-                    json.dumps({"MessageType": "SessionsStart", "Data": SESSIONS_TIMING})
-                )
+            # A copy: subscribe() may run in another task or thread meanwhile.
+            for feed, data in list(self._subscriptions.items()):
+                connection.send_text(_encode(f"{feed}Start", data))
             if self._on_connect:
                 self._on_connect()
             self._listen(connection)
@@ -142,6 +177,13 @@ class JellyfinWebSocket:
             self._on_message(message)
         except Exception:
             _LOGGER.exception("Error handling WebSocket message %s", message.get("MessageType"))
+
+
+def _encode(message_type: str, data: Any) -> str:
+    message: dict[str, Any] = {"MessageType": message_type}
+    if data is not None:
+        message["Data"] = data
+    return json.dumps(message)
 
 
 def _parse(data: str) -> dict[str, Any] | None:
