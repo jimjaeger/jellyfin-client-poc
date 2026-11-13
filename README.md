@@ -123,6 +123,26 @@ Regenerate with `python tools/generate.py`.
 - `SessionsStart` does not push the current sessions; the server sends `Sessions` only on
   changes, so the initial state has to come from REST.
 
+### In the shape of jellyfin-mpv-shim
+
+`tools/shim_probe.py` runs the sync stack the way jellyfin-mpv-shim uses its client: the
+WebSocket in its own thread, REST on other threads over one shared `httpx.Client`, and a
+second client sending the commands Jellyfin Web would send. All 17 checks pass:
+
+- The device registers with `post_full_capabilities` and shows up as remote-controllable.
+- `Play`, `Playstate` (pause, seek, unpause) and `GeneralCommand` (`SetVolume`) arrive over
+  the WebSocket; `PlaybackInfo`, the first MiB of the stream and start, progress and stop
+  reports work, and the controller sees `NowPlayingItem` appear and clear.
+- 80 concurrent REST calls from four threads share the client while the WebSocket thread
+  is receiving.
+- After the connection is dropped, the WebSocket reconnects within a second, posts the
+  capabilities again from `on_connect`, and commands reach it again.
+- `stop()` from the main thread ends the WebSocket thread at once.
+
+With an API key the session has no user: `PlaybackInfo` then needs an explicit `userId`
+(HTTP 400 without), and SyncPlay is skipped. The server was plain http, so httpx used
+HTTP/1.1; HTTP/2 needs TLS.
+
 ## Checks
 
 ```sh
