@@ -14,6 +14,7 @@ from ._async import (
 )
 from ._base import ClientInfo
 from ._sync import JellyfinClient, JellyfinWebSocket, RemoteControl, connect_to_address
+from .discovery import DiscoveredServer, async_discover_servers, discover_servers
 from .exceptions import (
     JellyfinApiError,
     JellyfinAuthError,
@@ -32,6 +33,7 @@ __all__ = [
     "AsyncRemoteControl",
     "AsyncTransport",
     "ClientInfo",
+    "DiscoveredServer",
     "JellyfinApiError",
     "JellyfinAuthError",
     "JellyfinClient",
@@ -45,6 +47,8 @@ __all__ = [
     "Response",
     "SyncTransport",
     "async_connect_to_address",
+    "async_discover_servers",
     "connect_to_address",
+    "discover_servers",
     "models",
 ]

@@ -94,6 +94,10 @@ Regenerate with `python tools/generate.py`.
   `on_connect`; `unsubscribe()` sends the Stop message and forgets it. Sessions are
   subscribed by default. `send()` is for one-off messages and raises
   `JellyfinConnectionError` without a connection instead of queueing.
+- **Server discovery without a transport.** `discover_servers()` and
+  `async_discover_servers()` send the UDP query on port 7359 with the standard library
+  and return one reply per server id. Replies are not authenticated, so show the
+  addresses for the user to pick; network errors are logged and give an empty list.
 - **The caller owns the HTTP session or client**, so Home Assistant can pass its shared
   aiohttp session.
 - **Header-based auth.** `Authorization: MediaBrowser …` for requests and the WebSocket;
@@ -134,6 +138,9 @@ Regenerate with `python tools/generate.py`.
   device logging in and out as the change, `Sessions` (as a user) and `ActivityLogEntry`
   (with an admin API key) arrive while subscribed, stop after `unsubscribe()`, and arrive
   again after a dropped connection without subscribing again.
+- Discovery sent to the server's address returns its `Id`, `Name` and `Address`, sync
+  and async. A broadcast from a container behind NAT reaches no server; that is the
+  network, not the query.
 
 ### In the shape of jellyfin-mpv-shim
 
