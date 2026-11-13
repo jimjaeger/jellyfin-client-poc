@@ -69,8 +69,7 @@ Regenerate with `python tools/generate.py`.
 - **Every tag is generated.** All of them cost about 3 ms more import time than a subset;
   the models dominate. GET endpoints returning images, streams or files become URL
   builders (`get_trickplay_tile_image_url(...)`, `get_item_image_url(...)`) with every
-  query parameter from the spec. HEAD variants and uploads with image or text bodies are
-  skipped, and the generator lists them.
+  query parameter from the spec. HEAD variants are skipped, and the generator lists them.
 - **Uploads are generated too.** Image uploads are sent base64-encoded: the spec declares
   them binary, but the server decodes them as base64 (`GetFromBase64Stream` in
   `ImageController`). Lyrics and client logs are sent as raw text.
