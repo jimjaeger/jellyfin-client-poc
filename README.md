@@ -127,7 +127,7 @@ Regenerate with `python tools/generate.py`.
 
 `tools/shim_probe.py` runs the sync stack the way jellyfin-mpv-shim uses its client: the
 WebSocket in its own thread, REST on other threads over one shared `httpx.Client`, and a
-second client sending the commands Jellyfin Web would send. All 17 checks pass:
+second client sending the commands Jellyfin Web would send. All 19 checks pass as a user:
 
 - The device registers with `post_full_capabilities` and shows up as remote-controllable.
 - `Play`, `Playstate` (pause, seek, unpause) and `GeneralCommand` (`SetVolume`) arrive over
@@ -138,6 +138,9 @@ second client sending the commands Jellyfin Web would send. All 17 checks pass:
 - After the connection is dropped, the WebSocket reconnects within a second, posts the
   capabilities again from `on_connect`, and commands reach it again.
 - `stop()` from the main thread ends the WebSocket thread at once.
+
+- SyncPlay: creating a group brings `SyncPlayGroupUpdate` `GroupJoined`, ping works, and
+  leaving brings `GroupLeft`.
 
 With an API key the session has no user: `PlaybackInfo` then needs an explicit `userId`
 (HTTP 400 without), and SyncPlay is skipped. The server was plain http, so httpx used
